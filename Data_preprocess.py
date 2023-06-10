@@ -1,10 +1,12 @@
 import ccxt
 import datetime
 import pandas as pd
-
+import logging
 
 #Timeframes - 1w, 1M - выписать остальные
 def download_ccxt(Market, Since, To, Timeframe, Exchange=ccxt.binance()):
+    logger = logging.getLogger('download_ccxt')
+    logger.propagate = False
     # Initialize Binance API
     exchange = Exchange
     # exchange = ccxt.binance()
@@ -51,8 +53,5 @@ def download_ccxt(Market, Since, To, Timeframe, Exchange=ccxt.binance()):
     # Split timestamp into date and time columns
     # df['DATE'] = df['timestamp'].dt.strftime('%Y%m%d')
     # df['TIME'] = df['timestamp'].dt.strftime('%H%M%S')
-
-    # Reorder columns to desired order
-    # df = df[['DATE', 'TIME', 'OPEN', 'HIGH', 'LOW', 'CLOSE', 'VOL']]
 
     return df

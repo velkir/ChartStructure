@@ -1,17 +1,14 @@
 from Data_preprocess import download_ccxt
 from FindTrends import getTrends
-import Trend
-df = download_ccxt(Market="BTC/USDT", Since='2020-12-11T00:00:00Z', To='2023-08-01T00:00:00Z',Timeframe="1d")
+import json
+from Logging import setup_logging
 
-trends = getTrends(df, minthreshold=0.1)
+logger = setup_logging()
 
-with open("trends.txt", "w") as file:
-    for trend in trends:
-        line = f"{trend.direction},{trend.point0},{trend.point1},{trend.parent},{trend.status},{trend.delta}, {trend.timestampstart}, {trend.timestampend}\n"
-        file.write(line)
-# # df = download_ccxt(Market="BTC/USDT", Since='2017-01-01T00:00:00Z', To='2023-08-01T00:00:00Z', Timeframe="1w")
-# # df = download_ccxt(Market="BTC/USDT", Since='2017-12-11T00:00:00Z', To='2023-08-01T00:00:00Z',Timeframe="1w")
-# print(df.head())
-# print(df.tail())
-# print(df.loc[0, "timestamp"])
-# visualize(df)
+df = download_ccxt(Market="BTC/USDT", Since='2022-01-01T00:00:00Z', To='2023-05-01T00:00:00Z',Timeframe="1M")
+rootTrends = getTrends(dataframe=df, minthreshold=0.1, logger=logger)
+
+json_data = [trend.to_dict() for trend in rootTrends]
+json_final = json.dumps(json_data)
+with open('trends.json', 'w') as file:
+    file.write(json_final)
