@@ -19,9 +19,6 @@ def getTrends(dataframe, minthreshold, logger):
 
     for bar in range(len(df)):
         logger.debug('Processing bar number {}'.format(bar))
-        #Пропускаем первый бар
-        # if df.loc[bar, "timestamp"] == Point0["timestamp"]:
-        #     continue
         #Обрабатываем текущую свечу, берем из неё хай и лой
         HighPoint = df.loc[bar, "HIGH"]
         LowPoint = df.loc[bar, "LOW"]
@@ -31,7 +28,7 @@ def getTrends(dataframe, minthreshold, logger):
             if abs(HighPoint / Point0["LOW"] * 100 - 100) >= MinThreshold * 100 and HighPoint >= Point0["LOW"]:
                 logger.debug('Found an uptrend: Low={}, High={}'.format(Point0["LOW"], HighPoint))
                 trend = Trend(direction=0, point0=Point0["LOW"], point1=HighPoint,
-                              delta=HighPoint / Point0["LOW"] * 100 - 100, parent=None, status=1,
+                              delta=abs(HighPoint / Point0["LOW"] * 100 - 100), parent=None, status=1,
                               timestampstart=Point0["timestamp"],
                               timestampend=df.loc[bar, "timestamp"], id=0)
                 mainTrend = trend
@@ -40,10 +37,10 @@ def getTrends(dataframe, minthreshold, logger):
                 firstTrend=False
                 continue
             #Поиск даунтренда
-            elif abs(LowPoint / Point0["HIGH"] * 100 - 100  ) >= MinThreshold * 100 and LowPoint <= Point0["HIGH"]:
+            elif abs(LowPoint / Point0["HIGH"] * 100 - 100) >= MinThreshold * 100 and LowPoint <= Point0["HIGH"]:
                 logger.debug('Found a downtrend: High={}, Low={}'.format(Point0["HIGH"], LowPoint))
                 trend = Trend(direction=1, point0=Point0["HIGH"], point1=LowPoint,
-                              delta=LowPoint / Point0["HIGH"] * 100 - 100, parent=None, status=1,
+                              delta=abs(LowPoint / Point0["HIGH"] * 100 - 100), parent=None, status=1,
                               timestampstart=Point0["timestamp"],
                               timestampend=df.loc[bar, "timestamp"], id=0)
                 mainTrend = trend
@@ -63,12 +60,15 @@ def getTrends(dataframe, minthreshold, logger):
                     #Переписываем хай тренда
                     logger.debug('Обновляем хай у trend Id:{} с значения {} на значение {}'.format(mainTrend.id, mainTrend.point1, HighPoint))
                     mainTrend.point1 = HighPoint
+                    mainTrend.recalculate_trend_delta()
+                    mainTrend.extendedExtremum = mainTrend.point1
                     mainTrend.timestampend = df.loc[bar, "timestamp"]
                     if mainTrend.parent != None:
                         logger.debug('Вызываем метод compare_trends (в HighPoint > mainTrend.point1) Parent до вызова: Id:{}, Low:{}, High:{}, Direction:{}'.format(mainTrend.parent.id, mainTrend.parent.point0, mainTrend.parent.point1, mainTrend.parent.direction))
                     mainTrend = mainTrend.compare_trends(rootTrends=rootTrends, Highpoint=HighPoint, Lowpoint=LowPoint, logger=logger).last_id()
-                    # logger.debug('mainTrendId:{} / lastTrendId:{}'.format(mainTrend.id, get_node_with_max_id(mainTrend).id))
-
+                    if mainTrend.id != 0:
+                        mainTrend.update_efficiency()
+                    mainTrend.recalculate_parents(logger=logger)
                     if mainTrend.parent != None:
                         logger.debug('Parent после вызова:Id:{}, Low:{}, High:{}, Direction:{}'.format(mainTrend.parent.id, mainTrend.parent.point0, mainTrend.parent.point1, mainTrend.parent.direction))
                     continue
@@ -81,11 +81,15 @@ def getTrends(dataframe, minthreshold, logger):
                                   id=mainTrend.id + 1)
                     mainTrend.add_child(trend)
                     mainTrend = trend
+
                     if mainTrend.parent != None:
                         logger.debug(
                             'Вызываем метод compare_trends (в коррекции аптренда). Parent до вызова: Id:{}, Low:{}, High:{}, Direction:{}'.format(mainTrend.parent.id, mainTrend.parent.point0,
                                                                                   mainTrend.parent.point1, mainTrend.parent.direction))
                     mainTrend = mainTrend.compare_trends(rootTrends, Highpoint=HighPoint, Lowpoint=LowPoint, logger=logger).last_id()
+                    mainTrend.update_efficiency()
+                    mainTrend.add_trend_to_efficiency(mainTrend)
+                    mainTrend.recalculate_parents(logger=logger)
                     # logger.debug('mainTrendId:{} / lastTrendId:{}'.format(mainTrend.id, get_node_with_max_id(mainTrend).id))
                     if mainTrend.parent != None:
                         logger.debug(
@@ -99,11 +103,15 @@ def getTrends(dataframe, minthreshold, logger):
                     #Переписываем лой тренда
                     logger.debug('Обновляем лой у trend Id:{} с значения {} на значение {}'.format(mainTrend.id, mainTrend.point1, LowPoint))
                     mainTrend.point1 = LowPoint
+                    mainTrend.recalculate_trend_delta()
+                    mainTrend.extendedExtremum = mainTrend.point1
                     mainTrend.timestampend = df.loc[bar, "timestamp"]
                     if mainTrend.parent != None:
                         logger.debug('Вызываем метод compare_trends (LowPoint < mainTrend.point1). Parent до вызова: Id:{}, Low:{}, High:{}, Direction:{}'.format(mainTrend.parent.id, mainTrend.parent.point0, mainTrend.parent.point1, mainTrend.parent.direction))
                     mainTrend = mainTrend.compare_trends(rootTrends=rootTrends, Highpoint=HighPoint, Lowpoint=LowPoint, logger=logger).last_id()
-                    # logger.debug('mainTrendId:{} / lastTrendId:{}'.format(mainTrend.id, get_node_with_max_id(mainTrend).id))
+                    if mainTrend.id != 0:
+                        mainTrend.update_efficiency()
+                    mainTrend = mainTrend.recalculate_parents(logger)
                     if mainTrend.parent != None:
                         logger.debug('Parent после вызова: Id:{}, Low:{}, High:{}, Direction:{}'.format(mainTrend.parent.id, mainTrend.parent.point0, mainTrend.parent.point1, mainTrend.parent.direction))
                     continue
@@ -116,16 +124,32 @@ def getTrends(dataframe, minthreshold, logger):
                                   id=mainTrend.id + 1)
                     mainTrend.add_child(trend)
                     mainTrend = trend
+
                     if mainTrend.parent != None:
                         logger.debug('Вызываем метод compare_trends (в коррекции шорта): Id:{}, Low:{}, High:{}, Direction:{}'.format(mainTrend.parent.id, mainTrend.parent.point0, mainTrend.parent.point1, mainTrend.parent.direction))
                     mainTrend = mainTrend.compare_trends(rootTrends, Highpoint=HighPoint, Lowpoint=LowPoint, logger=logger).last_id()
-                    # logger.debug('mainTrendId:{} / lastTrendId:{}'.format(mainTrend.id, get_node_with_max_id(mainTrend).id))
+                    mainTrend.update_efficiency()
+                    mainTrend.add_trend_to_efficiency(mainTrend)
+                    mainTrend.recalculate_parents(logger=logger)
                     if mainTrend.parent != None:
                         logger.debug('Parent после вызова Id:{}, Low:{}, High:{}, Direction:{}'.format(mainTrend.parent.id, mainTrend.parent.point0,
                                                                                  mainTrend.parent.point1, mainTrend.parent.direction))
                     continue
-    #Что возвращать?
     logger.debug('Function getTrends() completed, returning rootTrends with length {}'.format(len(rootTrends)))
     return rootTrends
 
-
+# def process_high_point(mainTrend, HighPoint, bar, rootTrends, logger):
+#     logger.debug('Обновляем хай у trend Id:{} с значения {} на значение {}'.format(mainTrend.id, mainTrend.point1, HighPoint))
+#     mainTrend.point1 = HighPoint
+#     mainTrend.recalculate_trend_delta()
+#     mainTrend.extendedExtremum = mainTrend.point1
+#     mainTrend.timestampend = bar["timestamp"]
+#     if mainTrend.parent is not None:
+#         logger.debug('Вызываем метод compare_trends (в HighPoint > mainTrend.point1) Parent до вызова: Id:{}, Low:{}, High:{}, Direction:{}'.format(mainTrend.parent.id, mainTrend.parent.point0, mainTrend.parent.point1, mainTrend.parent.direction))
+#     mainTrend = mainTrend.compare_trends(rootTrends=rootTrends, Highpoint=HighPoint, Lowpoint=mainTrend.point1, logger=logger).last_id()
+#     if mainTrend.id != 0:
+#         mainTrend.update_efficiency()
+#     mainTrend = mainTrend.recalculate_parents(logger)
+#     if mainTrend.parent is not None:
+#         logger.debug('Parent после вызова:Id:{}, Low:{}, High:{}, Direction:{}'.format(mainTrend.parent.id, mainTrend.parent.point0, mainTrend.parent.point1, mainTrend.parent.direction))
+#     return mainTrend
