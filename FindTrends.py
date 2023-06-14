@@ -73,7 +73,7 @@ def getTrends(dataframe, minthreshold, logger):
                         logger.debug('Parent после вызова:Id:{}, Low:{}, High:{}, Direction:{}'.format(mainTrend.parent.id, mainTrend.parent.point0, mainTrend.parent.point1, mainTrend.parent.direction))
                     continue
                 #Если случилась коррекция к уровню 0.618
-                elif (mainTrend.point1 - LowPoint) / (mainTrend.point1 - mainTrend.point0)>=0.382:
+                elif (mainTrend.point1 - LowPoint) / (mainTrend.point1 - mainTrend.point0)>=0.2 and mainTrend.point1/LowPoint*100-100>=10:
                     logger.debug('Found a downtrend: High={}, Low={}'.format(mainTrend.point1, LowPoint))
                     trend = Trend(direction=1, point0=mainTrend.point1, point1=LowPoint,
                                   delta=abs(LowPoint / mainTrend.point1 * 100 - 100), parent=mainTrend, status=1,
@@ -116,7 +116,7 @@ def getTrends(dataframe, minthreshold, logger):
                         logger.debug('Parent после вызова: Id:{}, Low:{}, High:{}, Direction:{}'.format(mainTrend.parent.id, mainTrend.parent.point0, mainTrend.parent.point1, mainTrend.parent.direction))
                     continue
                 # Если случилась коррекция к уровню 0.618
-                elif (mainTrend.point1 - HighPoint) / (mainTrend.point1 - mainTrend.point0) >= 0.382:
+                elif (mainTrend.point1 - HighPoint) / (mainTrend.point1 - mainTrend.point0) >= 0.2 and LowPoint/mainTrend.point1*100-100>=10:
                     logger.debug('Found an uptrend: Low={}, High={}'.format(mainTrend.point1, HighPoint))
                     trend = Trend(direction=0, point0=mainTrend.point1, point1=HighPoint,
                                   delta=abs(HighPoint / mainTrend.point1 * 100 - 100), parent=mainTrend, status=1,

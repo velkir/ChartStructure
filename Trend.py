@@ -77,8 +77,10 @@ class Trend:
         if self.parent != None:
             if self.parent.parent != None:
                 if self.direction != self.parent.direction:
-                    if self.parent.direction == 1 and Highpoint > self.parent.point0 or \
-                            self.parent.direction == 0 and Lowpoint < self.parent.point0:
+                    # if self.parent.direction == 1 and Highpoint > self.parent.point0 or \
+                    #         self.parent.direction == 0 and Lowpoint < self.parent.point0:
+                    if self.parent.direction == 1 and structure_efficiency_high(self, Highpoint) > 1.1 or \
+                            self.parent.direction == 0 and  structure_efficiency_low(self, Lowpoint) > 1.1:
 
                         logger.debug('Setting id:{}, point0:{}, point1:{}, direction:{} status to 0'.format(self.parent.id, self.parent.point0, self.parent.point1, self.parent.direction))
                         self.parent.status = 0
@@ -332,4 +334,14 @@ class efficiencyTrend:
             'efficiency': self.efficiency
         }
 
+def structure_efficiency_high(self, Highpoint):
+    total_movement_high = abs(self.parent.point0 - self.point0)  # общее движение
+    current_movement_high = abs(Highpoint - self.point0)  # текущее движение
+    return current_movement_high / total_movement_high
 
+
+
+def structure_efficiency_low(self, Lowpoint):
+    total_movement_high = abs(self.parent.point0 - self.point0)  # общее движение
+    current_movement_high = abs(self.parent.point0 - Lowpoint)  # текущее движение
+    return current_movement_high / total_movement_high

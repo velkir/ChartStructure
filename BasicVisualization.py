@@ -1,63 +1,59 @@
 import pandas as pd
 import plotly.graph_objects as go
-from Data_preprocess import download_ccxt
+from datetime import datetime
+import json
+import time
+import Data_preprocess
 
-df = download_ccxt(Market="BTC/USDT", Since='2020-12-11T00:00:00Z', To='2023-08-01T00:00:00Z',Timeframe="1d")
+# Загрузка данных OHLC из CSV
+df = pd.read_csv('ohlc.csv')
+# df = Data_preprocess.convert_to_heiken_ashi(Data_preprocess.download_ccxt(Market="BTC/USDT", Since='2021-10-01T00:00:00Z', To='2023-06-23T00:00:00Z',Timeframe="1d"))
 
-# Чтение данных из txt файла и преобразование их в DataFrame
-trends = pd.read_csv('trends.txt', header=None)
-trends.columns = ['direction', 'point0', 'point1', 'parent', 'status', 'delta', 'timestampstart', 'timestampend']
-trends['timestampstart'] = pd.to_datetime(trends['timestampstart'])
-trends['timestampend'] = pd.to_datetime(trends['timestampend'])
 
-# Создание графика OHLC
-fig = go.Figure(data=go.Ohlc(x=df['timestamp'],
-                    open=df['OPEN'],
-                    high=df['HIGH'],
-                    low=df['LOW'],
-                    close=df['CLOSE']))
+# Парсим JSON и добавляем линии на график
+json_path = 'trends.json'
+with open(json_path, 'r') as file:
+    data = json.load(file)
 
-# Добавление данных о трендах на график
-for index, row in trends.iterrows():
+# data = json.loads(json_string)
+
+def extract_data(data):
+    results = []
+    for d in data:
+        results.append({
+            "start_point": d['point0'],
+            "start_timestamp": datetime.strptime(d['timestampstart'], "%Y-%m-%dT%H:%M:%S"),
+            "end_point": d['point1'],
+            "end_timestamp": datetime.strptime(d['timestampend'], "%Y-%m-%dT%H:%M:%S")
+        })
+        if 'children' in d and d['children']:
+            results.extend(extract_data(d['children']))
+    return results
+
+def extract_nested_data(data):
+    results = []
+    for d in data:
+        results.extend(extract_data([d]))
+    return results
+
+fig = go.Figure(data=[go.Ohlc(x=df['timestamp'],
+                open=df['OPEN'],
+                high=df['HIGH'],
+                low=df['LOW'],
+                close=df['CLOSE'])])
+
+extracted_data = extract_nested_data(data)
+
+for line in extracted_data:
     fig.add_trace(go.Scatter(
-        x=[row['timestampstart'], row['timestampend']],
-        y=[row['point0'], row['point1']],
-        mode='lines+markers',
-        name=f'Trend {index+1}'
+        x=[line['start_timestamp'], line['end_timestamp']],
+        y=[line['start_point'], line['end_point']],
+        mode='lines',
+        name=str(line['start_timestamp']) + ' to ' + str(line['end_timestamp']),
+        line=dict(color='purple')  # Можно выбрать цвет линий
     ))
 
-# Обновление параметров графика
-fig.update_layout(
-    title='BTCUSDT Price and Trends Over Time',
-    xaxis_title='Timestamp',
-    yaxis_title='Price / Trend Points',
-    autosize=False,
-    width=1000,
-    height=600,
-)
-
-# Отображение графика
+# Добавим текущий timestamp в название файла
+current_time = time.strftime("%Y%m%d-%H%M%S")
+fig.write_image(f"data/chart_{current_time}.jpg", scale=10, width=1920, height=1024)  # Сохраняем в jpg формате с более высоким разрешением
 fig.show()
-
-
-# import matplotlib.pyplot as plt
-# from Data_preprocess import download_ccxt
-# import plotly.graph_objects as go
-# df = download_ccxt(Market="BTC/USDT", Since='2017-12-11T00:00:00Z', To='2023-08-01T00:00:00Z',Timeframe="1w")
-#
-# fig = go.Figure(data=go.Ohlc(x=df['timestamp'],
-#                     open=df['OPEN'],
-#                     high=df['HIGH'],
-#                     low=df['LOW'],
-#                     close=df['CLOSE']))
-#
-# fig.update_layout(
-#     title='BTCUSDT Price Over Time',
-#     xaxis_title='Timestamp',
-#     yaxis_title='Price (USDT)',
-#     autosize=False,
-#     width=1000,
-#     height=600,
-# )
-#
-# fig.show()

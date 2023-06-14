@@ -49,9 +49,39 @@ def download_ccxt(Market, Since, To, Timeframe, Exchange=ccxt.binance()):
 
     # Convert timestamp to datetime
     df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
-
+    df.to_csv("ohlc.csv")
     # Split timestamp into date and time columns
     # df['DATE'] = df['timestamp'].dt.strftime('%Y%m%d')
     # df['TIME'] = df['timestamp'].dt.strftime('%H%M%S')
 
     return df
+
+
+import pandas as pd
+
+
+def convert_to_heiken_ashi(df):
+    df = df.copy()  # Создаем копию, чтобы не изменять исходный DataFrame
+
+    # Создаем новые колонки для данных Heiken Ashi
+    df['HA_Close'] = (df['OPEN'] + df['HIGH'] + df['LOW'] + df['CLOSE']) / 4
+    df['HA_Open'] = 0.0
+    df['HA_High'] = 0.0
+    df['HA_Low'] = 0.0
+
+    # Проходим по всем строкам в DataFrame и заполняем колонки Heiken Ashi
+    for i in range(len(df)):
+        if i == 0:
+            df.at[i, 'HA_Open'] = (df.at[i, 'OPEN'] + df.at[i, 'CLOSE']) / 2
+        else:
+            df.at[i, 'HA_Open'] = (df.at[i - 1, 'HA_Open'] + df.at[i - 1, 'HA_Close']) / 2
+        df.at[i, 'HA_High'] = max(df.at[i, 'HIGH'], df.at[i, 'HA_Open'], df.at[i, 'HA_Close'])
+        df.at[i, 'HA_Low'] = min(df.at[i, 'LOW'], df.at[i, 'HA_Open'], df.at[i, 'HA_Close'])
+
+    # Удаляем оригинальные колонки
+    df.drop(columns=['OPEN', 'HIGH', 'LOW', 'CLOSE'], inplace=True)
+
+    # Переименовываем новые столбцы
+    df.rename(columns={'HA_Open': 'OPEN', 'HA_High': 'HIGH', 'HA_Low': 'LOW', 'HA_Close': 'CLOSE'}, inplace=True)
+    df.to_csv("heiken.csv")
+    return df[['timestamp', 'OPEN', 'HIGH', 'LOW', 'CLOSE', 'VOL']]
