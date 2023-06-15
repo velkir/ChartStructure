@@ -83,7 +83,6 @@ def getTrends(dataframe, minthreshold, logger):
                                   timestampstart=mainTrend.timestampend, timestampend=df.loc[bar, "timestamp"],
                                   id=mainTrend.id + 1)
                     mainTrend.add_child(trend)
-                    mainTrend.extendedExtremum_timestamp = mainTrend.timestampend
                     mainTrend = trend
 
                     if mainTrend.parent != None:
@@ -129,7 +128,6 @@ def getTrends(dataframe, minthreshold, logger):
                                   timestampstart=mainTrend.timestampend, timestampend=df.loc[bar, "timestamp"],
                                   id=mainTrend.id + 1)
                     mainTrend.add_child(trend)
-                    mainTrend.extendedExtremum_timestamp = mainTrend.timestampend
                     mainTrend = trend
 
                     if mainTrend.parent != None:

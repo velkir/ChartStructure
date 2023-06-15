@@ -73,7 +73,6 @@ class Trend:
         logger.debug(
             'Method compare_trends() called with parameters rootTrends = {}, Highpoint = {}, Lowpoint = {}'.format(
                 rootTrends, Highpoint, Lowpoint))
-        EndCycle = False
         if self.parent != None:
             if self.parent.parent != None:
                 if self.direction != self.parent.direction:
