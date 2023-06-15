@@ -12,7 +12,7 @@ logger = setup_logging()
 #На большом объеме данных достигает лимита. По-хорошему - поставить цикл вместо рекурсии
 sys.setrecursionlimit(4000)
 
-df = download_ccxt(Market="BTC/USDT", Since='2016-01-01T00:00:00Z', To='2023-06-14T00:00:00Z',Timeframe="1w")
+df = download_ccxt(Market="BTC/USDT", Since='2022-01-01T00:00:00Z', To='2023-06-14T00:00:00Z',Timeframe="1d")
 
 start_time = time.time()
 # cProfile.run('rootTrends = getTrends(dataframe=df, minthreshold=0.2, logger=logger)', 'output_file.prof')

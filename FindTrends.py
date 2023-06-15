@@ -54,6 +54,8 @@ def getTrends(dataframe, minthreshold, logger):
             #     logger.debug('HighPoint is greater than mainTrend.point1 and LowPoint is less than mainTrend.point0')
             #     continue
             #Если текущий тренд - аптренд
+            #Добавил эти изменения, т.к. явно не должно быть так, что timestampend в случае, если 1 не перебивается и не образуется новый тренд, остается на прошлом баре
+
             if mainTrend.direction == 0:
                 #Если хай текущей свечи выше хая текущего тренда
                 if HighPoint > mainTrend.point1:
@@ -63,6 +65,7 @@ def getTrends(dataframe, minthreshold, logger):
                     mainTrend.recalculate_trend_delta()
                     mainTrend.extendedExtremum = mainTrend.point1
                     mainTrend.timestampend = df.loc[bar, "timestamp"]
+                    mainTrend.extendedExtremum_timestamp = mainTrend.timestampend
                     if mainTrend.parent != None:
                         logger.debug('Вызываем метод compare_trends (в HighPoint > mainTrend.point1) Parent до вызова: Id:{}, Low:{}, High:{}, Direction:{}'.format(mainTrend.parent.id, mainTrend.parent.point0, mainTrend.parent.point1, mainTrend.parent.direction))
                     mainTrend = mainTrend.compare_trends(rootTrends=rootTrends, Highpoint=HighPoint, Lowpoint=LowPoint, logger=logger).last_id()
@@ -80,6 +83,7 @@ def getTrends(dataframe, minthreshold, logger):
                                   timestampstart=mainTrend.timestampend, timestampend=df.loc[bar, "timestamp"],
                                   id=mainTrend.id + 1)
                     mainTrend.add_child(trend)
+                    mainTrend.extendedExtremum_timestamp = mainTrend.timestampend
                     mainTrend = trend
 
                     if mainTrend.parent != None:
@@ -106,6 +110,8 @@ def getTrends(dataframe, minthreshold, logger):
                     mainTrend.recalculate_trend_delta()
                     mainTrend.extendedExtremum = mainTrend.point1
                     mainTrend.timestampend = df.loc[bar, "timestamp"]
+                    mainTrend.extendedExtremum_timestamp = mainTrend.timestampend
+
                     if mainTrend.parent != None:
                         logger.debug('Вызываем метод compare_trends (LowPoint < mainTrend.point1). Parent до вызова: Id:{}, Low:{}, High:{}, Direction:{}'.format(mainTrend.parent.id, mainTrend.parent.point0, mainTrend.parent.point1, mainTrend.parent.direction))
                     mainTrend = mainTrend.compare_trends(rootTrends=rootTrends, Highpoint=HighPoint, Lowpoint=LowPoint, logger=logger).last_id()
@@ -123,6 +129,7 @@ def getTrends(dataframe, minthreshold, logger):
                                   timestampstart=mainTrend.timestampend, timestampend=df.loc[bar, "timestamp"],
                                   id=mainTrend.id + 1)
                     mainTrend.add_child(trend)
+                    mainTrend.extendedExtremum_timestamp = mainTrend.timestampend
                     mainTrend = trend
 
                     if mainTrend.parent != None:

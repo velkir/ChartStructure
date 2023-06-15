@@ -22,9 +22,9 @@ class Trend:
         self.status0_when = None
         self.status0_who = None
         self.full_delta = delta
-        self.full_end_date = timestampstart
         self.efficiency_compare_trends = []
         self.extendedExtremum = point1
+        self.extendedExtremum_timestamp = timestampend
         #0 - коррекционное - eff<90%
         #1 - неопреденность - 90%<=eff<110%
         #2 - слабая эффективность - 110%<=eff<150%
@@ -53,8 +53,8 @@ class Trend:
             'status0_when': self.status0_when.isoformat() if self.status0_when is not None else None,
             'status0_who': self.status0_who if self.status0_who is not None else None,
             'full_delta': self.full_delta,
-            'full_end_date': self.full_end_date.isoformat() if self.full_end_date is not None else None,
             'extendedExtremum': self.extendedExtremum,
+            'extendedExtremum_timestamp': self.extendedExtremum_timestamp.isoformat() if self.extendedExtremum_timestamp is not None else None,
             'efficiency_compare_trends': [
             {
                 'trend': eff_trend.trend.id if eff_trend.trend is not None else None,
@@ -102,8 +102,8 @@ class Trend:
                     return self.parent.compare_trends(rootTrends, Highpoint, Lowpoint, logger=logger)
             elif self.parent.parent == None:
                 if self.direction != self.parent.direction:
-                    if self.parent.direction == 1 and Highpoint > self.parent.point0 or \
-                            self.parent.direction == 0 and Lowpoint < self.parent.point0:
+                    if self.parent.direction == 1 and structure_efficiency_high(self, Highpoint) > 1.1 or \
+                            self.parent.direction == 0 and structure_efficiency_low(self, Lowpoint) > 1.1:
                         logger.debug(
                             'Setting id:{}, point0:{}, point1:{}, direction:{} status to 0'.format(self.parent.id,
                                                                                                    self.parent.point0,
@@ -168,7 +168,7 @@ class Trend:
         elif self.direction == 1:
             self.delta = abs(self.point1/self.point0*100-100)
         self.full_delta = self.delta
-        self.full_end_date = self.timestampend
+        self.extendedExtremum_timestamp = self.timestampend
         return self
 
     def recalculate_parents(self, logger):
@@ -188,6 +188,7 @@ class Trend:
                                 parentTrends[parentTrend].extendedExtremum, self.point1, self.id,
                                 self.direction))
                         Trend.get_trend_by_id(parentTrends[parentTrend].id).extendedExtremum = self.point1
+                        Trend.get_trend_by_id(parentTrends[parentTrend].id).extendedExtremum_timestamp = self.timestampend
         elif self.direction == 1:
             for parentTrend in range(len(parentTrends)):
                 if Trend.get_trend_by_id(parentTrends[parentTrend].id).point1 > self.point1:
@@ -203,6 +204,7 @@ class Trend:
                                 parentTrends[parentTrend].extendedExtremum, self.point1, self.id,
                                 self.direction))
                         Trend.get_trend_by_id(parentTrends[parentTrend].id).extendedExtremum = self.point1
+                        Trend.get_trend_by_id(parentTrends[parentTrend].id).extendedExtremum_timestamp = self.timestampend
         return self
 
     # def add_trend_to_efficiency(self, trend, id, efficiency):
@@ -248,78 +250,6 @@ class Trend:
         total_movement = abs(parent_trend.point0 - self.point0)  # общее движение
         current_movement = abs(self.extendedExtremum - self.point0)  # текущее движение
         return (current_movement / total_movement)
-
-def compare_trends2(self, rootTrends, Highpoint, Lowpoint, logger):
-        stack = [(self, rootTrends, Highpoint, Lowpoint)]
-        while stack:
-            self, rootTrends, Highpoint, Lowpoint = stack[-1]
-            logger.debug(
-                'Method compare_trends() called with parameters rootTrends = {}, Highpoint = {}, Lowpoint = {}'.format(
-                    rootTrends, Highpoint, Lowpoint))
-            EndCycle = False
-            if self.parent != None:
-                if self.parent.parent != None:
-                    if self.direction != self.parent.direction:
-                        if self.parent.direction == 1 and Highpoint > self.parent.point0 or \
-                                self.parent.direction == 0 and Lowpoint < self.parent.point0:
-                            logger.debug(
-                                'Добавляем trend Id:{} в список уничтоженных trendом Id:{}'.format(self.parent.id,
-                                                                                                   self.id))
-                            self.add_destroyed_trend(self.parent.id, self.timestampend)
-                            logger.debug(
-                                'Setting id:{}, point0:{}, point1:{}, direction:{} status to 0'.format(self.parent.id,
-                                                                                                       self.parent.point0,
-                                                                                                       self.parent.point1,
-                                                                                                       self.parent.direction))
-                            self.parent.status = 0
-                            self.parent.status0_when = self.last_id().timestampend
-                            self.parent.status0_who = self.last_id().id
-                            logger.debug('Adding child: Id:{} to Id:{}'.format(self.id, self.parent.parent.id))
-                            self.parent.parent.add_child(self)
-                            logger.debug('Remove child: Id:{} from Id:{}'.format(self.id, self.parent.id))
-                            self.parent.remove_child(self)
-                            old_parent = self.parent
-                            self.parent = self.parent.parent
-                            logger.debug('New Parent of Id:{} is Id:{}'.format(self.id, self.parent.id))
-                            logger.debug(
-                                'Запускаем рекурсивную функцию (изначально была для Id:{}, теперь выполняется для Id:{}'.format(
-                                    old_parent.id, self.parent.id))
-                            stack.append((self.parent, rootTrends, Highpoint, Lowpoint))
-                            continue
-                    elif self.direction == self.parent.direction:
-                        logger.debug(
-                            'Запускаем рекурсивную функцию (изначально была для Id:{}, теперь выполняется для Id:{}'.format(
-                                self.id, self.parent.id))
-                        while EndCycle != False:
-                            stack.append((self.parent, rootTrends, Highpoint, Lowpoint))
-                            continue
-                elif self.parent.parent == None:
-                    if self.direction != self.parent.direction:
-                        if self.parent.direction == 1 and Highpoint > self.parent.point0 or \
-                                self.parent.direction == 0 and Lowpoint < self.parent.point0:
-                            logger.debug(
-                                'Добавляем trend Id:{} в список уничтоженных trendом Id:{}'.format(self.parent.id,
-                                                                                                   self.id))
-                            self.add_destroyed_trend(self.parent.id, self.timestampend)
-                            logger.debug(
-                                'Setting id:{}, point0:{}, point1:{}, direction:{} status to 0'.format(self.parent.id,
-                                                                                                       self.parent.point0,
-                                                                                                       self.parent.point1,
-                                                                                                       self.parent.direction))
-                            self.parent.status = 0
-                            self.parent.status0_when = self.last_id().timestampend
-                            self.parent.status0_who = self.last_id().id
-                            logger.debug('Adding mainTrend.id = {} to rootTrends'.format(self.id))
-                            rootTrends.append(self)
-                            logger.debug('Remove child: Id:{} from Id:{}'.format(self.id, self.parent.id))
-                            self.parent.remove_child(self)
-                            logger.debug('Setting ex-parent of id:{} to None'.format(self.id))
-                            self.parent = None
-                            stack.pop()
-                            continue
-            stack.pop()
-        return self
-
 
 class efficiencyTrend:
     def __init__(self, trend, efficiency):
