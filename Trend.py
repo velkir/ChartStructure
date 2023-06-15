@@ -174,36 +174,30 @@ class Trend:
         parentTrends = self.get_parent_trends_same_direction()
         if self.direction == 0:
             for parentTrend in range(len(parentTrends)):
-                if Trend.get_trend_by_id(parentTrends[parentTrend].id).point1 < self.point1:
-                    if Trend.get_trend_by_id(parentTrends[parentTrend].id).extendedExtremum < self.point1:
-                        Trend.get_trend_by_id(parentTrends[parentTrend].id).full_delta = abs(
-                            self.point1 / parentTrends[parentTrend].point0 * 100 - 100)
-                        Trend.get_trend_by_id(parentTrends[parentTrend].id).full_end_date = self.timestampend
-                if Trend.get_trend_by_id(parentTrends[parentTrend].id).point1 < self.point1:
-                    if Trend.get_trend_by_id(parentTrends[parentTrend].id).extendedExtremum < self.point1:
-                        logger.debug(
-                            'Меняем extendedExtremum у Id:{}, direction:{} со значения {} на значение {} из-за тренда Id:{}, direction={}'.format(
-                                parentTrends[parentTrend].id, parentTrends[parentTrend].direction,
-                                parentTrends[parentTrend].extendedExtremum, self.point1, self.id,
-                                self.direction))
-                        Trend.get_trend_by_id(parentTrends[parentTrend].id).extendedExtremum = self.point1
-                        Trend.get_trend_by_id(parentTrends[parentTrend].id).extendedExtremum_timestamp = self.timestampend
+                if Trend.get_trend_by_id(parentTrends[parentTrend].id).point1 < self.point1 and Trend.get_trend_by_id(parentTrends[parentTrend].id).extendedExtremum < self.point1:
+                    Trend.get_trend_by_id(parentTrends[parentTrend].id).full_delta = abs(self.point1 / parentTrends[parentTrend].point0 * 100 - 100)
+                    Trend.get_trend_by_id(parentTrends[parentTrend].id).full_end_date = self.timestampend
+                if Trend.get_trend_by_id(parentTrends[parentTrend].id).point1 < self.point1 and Trend.get_trend_by_id(parentTrends[parentTrend].id).extendedExtremum < self.point1:
+                    logger.debug(
+                        'Меняем extendedExtremum у Id:{}, direction:{} со значения {} на значение {} из-за тренда Id:{}, direction={}'.format(
+                            parentTrends[parentTrend].id, parentTrends[parentTrend].direction,
+                            parentTrends[parentTrend].extendedExtremum, self.point1, self.id,
+                            self.direction))
+                    Trend.get_trend_by_id(parentTrends[parentTrend].id).extendedExtremum = self.point1
+                    Trend.get_trend_by_id(parentTrends[parentTrend].id).extendedExtremum_timestamp = self.timestampend
         elif self.direction == 1:
             for parentTrend in range(len(parentTrends)):
-                if Trend.get_trend_by_id(parentTrends[parentTrend].id).point1 > self.point1:
-                    if Trend.get_trend_by_id(parentTrends[parentTrend].id).extendedExtremum > self.point1:
-                        Trend.get_trend_by_id(parentTrends[parentTrend].id).full_delta = abs(
-                            self.point1/parentTrends[parentTrend].point0 * 100 - 100)
-                        Trend.get_trend_by_id(parentTrends[parentTrend].id).full_end_date = self.timestampend
-                if Trend.get_trend_by_id(parentTrends[parentTrend].id).point1 > self.point1:
-                    if Trend.get_trend_by_id(parentTrends[parentTrend].id).extendedExtremum > self.point1:
-                        logger.debug(
-                            'Меняем extendedExtremum у Id:{}, direction:{} со значения {} на значение {} из-за тренда Id:{}, direction={}'.format(
-                                parentTrends[parentTrend].id, parentTrends[parentTrend].direction,
-                                parentTrends[parentTrend].extendedExtremum, self.point1, self.id,
-                                self.direction))
-                        Trend.get_trend_by_id(parentTrends[parentTrend].id).extendedExtremum = self.point1
-                        Trend.get_trend_by_id(parentTrends[parentTrend].id).extendedExtremum_timestamp = self.timestampend
+                if Trend.get_trend_by_id(parentTrends[parentTrend].id).point1 > self.point1 and Trend.get_trend_by_id(parentTrends[parentTrend].id).extendedExtremum > self.point1:
+                    Trend.get_trend_by_id(parentTrends[parentTrend].id).full_delta = abs(self.point1 / parentTrends[parentTrend].point0 * 100 - 100)
+                    Trend.get_trend_by_id(parentTrends[parentTrend].id).full_end_date = self.timestampend
+                if Trend.get_trend_by_id(parentTrends[parentTrend].id).point1 > self.point1 and Trend.get_trend_by_id(parentTrends[parentTrend].id).extendedExtremum > self.point1:
+                    logger.debug(
+                        'Меняем extendedExtremum у Id:{}, direction:{} со значения {} на значение {} из-за тренда Id:{}, direction={}'.format(
+                            parentTrends[parentTrend].id, parentTrends[parentTrend].direction,
+                            parentTrends[parentTrend].extendedExtremum, self.point1, self.id,
+                            self.direction))
+                    Trend.get_trend_by_id(parentTrends[parentTrend].id).extendedExtremum = self.point1
+                    Trend.get_trend_by_id(parentTrends[parentTrend].id).extendedExtremum_timestamp = self.timestampend
         return self
 
     # def add_trend_to_efficiency(self, trend, id, efficiency):
@@ -217,22 +211,6 @@ class Trend:
                     efficiency = self.calculate_efficiency(parent_trend=self.parent)
                     self.efficiency_compare_trends.append(efficiencyTrend(trend=self.parent, efficiency=efficiency))
         return self
-
-    #метод без рекурсии
-    def add_trend_to_efficiency2(self, trend):
-        trends_to_process = [trend]
-        while trends_to_process:
-            current_trend = trends_to_process.pop()
-            if current_trend.parent is not None:
-                if current_trend.direction == current_trend.parent.direction:
-                    trends_to_process.append(current_trend.parent)
-                elif current_trend.direction != current_trend.parent.direction:
-                    if not any(eff_trend.trend == current_trend.parent for eff_trend in
-                               current_trend.efficiency_compare_trends):
-                        efficiency = current_trend.calculate_efficiency(parent_trend=current_trend.parent)
-                        current_trend.efficiency_compare_trends.append(
-                            efficiencyTrend(trend=current_trend.parent, efficiency=efficiency))
-
 
     def update_efficiency(self):
         trends = [self]
@@ -253,15 +231,23 @@ class Trend:
 class efficiencyTrend:
     def __init__(self, trend, efficiency):
         self.trend = trend
-        #self.id = id
         self.efficiency = efficiency
+    # def __init__(self, trend, efficiency_uncertain=None, efficiency_poor_efficiency=None, efficiency_good_efficiency=None):
+    #     self.trend = trend
+    #     self.efficiency_uncertain = efficiency_uncertain
+    #     self.efficiency_poor_efficiency = efficiency_poor_efficiency
+    #     self.efficiency_good_efficiency = efficiency_good_efficiency
 
     def to_dict(self):
         return {
             'trend': self.trend.id if self.trend is not None else None,
-            # 'id': self.id,
             'efficiency': self.efficiency
         }
+
+class Efficiency:
+    def __init__(self, percent, timestamp):
+        self.percent = percent
+        self.timestamp = timestamp
 
 def structure_efficiency_high(self, Highpoint):
     total_movement_high = abs(self.parent.point0 - self.point0)  # общее движение

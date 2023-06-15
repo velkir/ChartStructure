@@ -6,27 +6,21 @@ import sys
 import time
 import cProfile
 import pstats
+import configparser
+import Initialization
+from DataSaving import save_to_json
 
-logger = setup_logging()
+logger, correction_ratio, min_trend_delta, Market, Since, To, Timeframe = Initialization.initialize()
 
-#На большом объеме данных достигает лимита. По-хорошему - поставить цикл вместо рекурсии
-sys.setrecursionlimit(4000)
-
-df = download_ccxt(Market="BTC/USDT", Since='2022-01-01T00:00:00Z', To='2023-06-14T00:00:00Z',Timeframe="1d")
+df = download_ccxt(Market=Market, Since=Since, To=To,Timeframe=Timeframe)
 
 start_time = time.time()
 # cProfile.run('rootTrends = getTrends(dataframe=df, minthreshold=0.2, logger=logger)', 'output_file.prof')
-rootTrends = getTrends(dataframe=df, minthreshold=0.1, logger=logger)
+rootTrends = getTrends(dataframe=df, correction_ratio=correction_ratio, min_trend_delta=min_trend_delta, logger=logger)
 end_time = time.time()
 p = pstats.Stats('output_file.prof')
 p.sort_stats('cumulative').print_stats(10)
-
-
 execution_time = end_time - start_time
-
 print("Execution time: ", execution_time, "seconds")
 
-json_data = [trend.to_dict() for trend in rootTrends]
-json_final = json.dumps(json_data)
-with open('trends.json', 'w') as file:
-    file.write(json_final)
+save_to_json(rootTrends=rootTrends)
