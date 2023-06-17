@@ -1,9 +1,8 @@
 from Trend import Trend
 
-def getTrends(dataframe, correction_ratio, min_trend_delta, logger):
+def getTrends(dataframe, correction_ratio, min_trend_delta, uncertain_coef, poor_coef, medium_coef, high_coef, logger):
     def process_first_trend(df, bar, HighPoint, LowPoint, Point0, min_trend_delta, rootTrends, logger):
         if abs(HighPoint / Point0["LOW"] * 100 - 100) >= correction_ratio * 100 and HighPoint >= Point0["LOW"]:
-            print(abs(HighPoint / Point0["LOW"] * 100 - 100) >= min_trend_delta * 100)
             logger.debug('Found an uptrend: Low={}, High={}'.format(Point0["LOW"], HighPoint))
             trend = Trend(direction=0, point0=Point0["LOW"], point1=HighPoint,
                           delta=abs(HighPoint / Point0["LOW"] * 100 - 100), parent=None, status=1,
@@ -15,7 +14,6 @@ def getTrends(dataframe, correction_ratio, min_trend_delta, logger):
         # Поиск даунтренда
 
         elif abs(LowPoint / Point0["HIGH"] * 100 - 100) >= correction_ratio * 100 and LowPoint <= Point0["HIGH"]:
-            print(abs(LowPoint / Point0["HIGH"] * 100 - 100) >= min_trend_delta * 100)
             logger.debug('Found a downtrend: High={}, Low={}'.format(Point0["HIGH"], LowPoint))
             trend = Trend(direction=1, point0=Point0["HIGH"], point1=LowPoint,
                           delta=abs(LowPoint / Point0["HIGH"] * 100 - 100), parent=None, status=1,
@@ -24,7 +22,7 @@ def getTrends(dataframe, correction_ratio, min_trend_delta, logger):
             logger.debug('Добавляем maintrend с id={} в rootTrends'.format(trend.id))
             rootTrends.append(trend)
             return trend
-    def process_trend(mainTrend, correction_ratio, min_trend_delta):
+    def process_trend(mainTrend, correction_ratio, min_trend_delta, uncertain_coef, poor_coef, medium_coef, high_coef):
         def process_uptrend_correction(mainTrend):
             logger.debug('Found a downtrend: High={}, Low={}'.format(mainTrend.point1, LowPoint))
             trend = Trend(direction=1, point0=mainTrend.point1, point1=LowPoint,
@@ -33,10 +31,10 @@ def getTrends(dataframe, correction_ratio, min_trend_delta, logger):
                           id=mainTrend.id + 1)
             mainTrend.add_child(trend)
             mainTrend = trend
-            mainTrend = mainTrend.compare_trends(rootTrends, Highpoint=HighPoint, Lowpoint=LowPoint,
+            mainTrend = mainTrend.compare_trends(rootTrends=rootTrends, Highpoint=HighPoint, Lowpoint=LowPoint, uncertain_coef=uncertain_coef, poor_coef=poor_coef, medium_coef=medium_coef, high_coef=high_coef,
                                                  logger=logger).last_id()
-            mainTrend.update_efficiency()
             mainTrend.add_trend_to_efficiency(mainTrend)
+            mainTrend.update_efficiency(uncertain_coef, poor_coef, medium_coef, high_coef, logger)
             mainTrend.recalculate_parents(logger=logger)
             return mainTrend
 
@@ -55,10 +53,10 @@ def getTrends(dataframe, correction_ratio, min_trend_delta, logger):
                     'Вызываем метод compare_trends (в коррекции шорта): Id:{}, Low:{}, High:{}, Direction:{}'.format(
                         mainTrend.parent.id, mainTrend.parent.point0, mainTrend.parent.point1,
                         mainTrend.parent.direction))
-            mainTrend = mainTrend.compare_trends(rootTrends, Highpoint=HighPoint, Lowpoint=LowPoint,
+            mainTrend = mainTrend.compare_trends(rootTrends=rootTrends, Highpoint=HighPoint, Lowpoint=LowPoint,uncertain_coef=uncertain_coef, poor_coef=poor_coef, medium_coef=medium_coef, high_coef=high_coef,
                                                  logger=logger).last_id()
-            mainTrend.update_efficiency()
             mainTrend.add_trend_to_efficiency(mainTrend)
+            mainTrend.update_efficiency(uncertain_coef, poor_coef, medium_coef, high_coef, logger)
             mainTrend.recalculate_parents(logger=logger)
             return mainTrend
         def process_uptrend_move_up(mainTrend):
@@ -71,10 +69,11 @@ def getTrends(dataframe, correction_ratio, min_trend_delta, logger):
             mainTrend.extendedExtremum = mainTrend.point1
             mainTrend.timestampend = df.loc[bar, "timestamp"]
             mainTrend.extendedExtremum_timestamp = mainTrend.timestampend
-            mainTrend = mainTrend.compare_trends(rootTrends=rootTrends, Highpoint=HighPoint, Lowpoint=LowPoint,
+            mainTrend = mainTrend.compare_trends(rootTrends=rootTrends, Highpoint=HighPoint, Lowpoint=LowPoint,uncertain_coef=uncertain_coef, poor_coef=poor_coef, medium_coef=medium_coef, high_coef=high_coef,
                                                  logger=logger).last_id()
             if mainTrend.id != 0:
-                mainTrend.update_efficiency()
+                mainTrend.add_trend_to_efficiency(mainTrend)
+                mainTrend.update_efficiency(uncertain_coef, poor_coef, medium_coef, high_coef, logger)
             mainTrend.recalculate_parents(logger=logger)
             return mainTrend
         def process_downtrend_move_down(mainTrend):
@@ -83,16 +82,17 @@ def getTrends(dataframe, correction_ratio, min_trend_delta, logger):
             mainTrend.extendedExtremum = mainTrend.point1
             mainTrend.timestampend = df.loc[bar, "timestamp"]
             mainTrend.extendedExtremum_timestamp = mainTrend.timestampend
-
+            mainTrend.update_efficiency(uncertain_coef, poor_coef, medium_coef, high_coef, logger)
             if mainTrend.parent != None:
                 logger.debug(
                     'Вызываем метод compare_trends (LowPoint < mainTrend.point1). Parent до вызова: Id:{}, Low:{}, High:{}, Direction:{}'.format(
                         mainTrend.parent.id, mainTrend.parent.point0, mainTrend.parent.point1,
                         mainTrend.parent.direction))
-            mainTrend = mainTrend.compare_trends(rootTrends=rootTrends, Highpoint=HighPoint, Lowpoint=LowPoint,
+            mainTrend = mainTrend.compare_trends(rootTrends=rootTrends, Highpoint=HighPoint, Lowpoint=LowPoint,uncertain_coef=uncertain_coef, poor_coef=poor_coef, medium_coef=medium_coef, high_coef=high_coef,
                                                  logger=logger).last_id()
             if mainTrend.id != 0:
-                mainTrend.update_efficiency()
+                mainTrend.add_trend_to_efficiency(mainTrend)
+                mainTrend.update_efficiency(uncertain_coef, poor_coef, medium_coef, high_coef, logger)
             mainTrend = mainTrend.recalculate_parents(logger)
             return mainTrend
 
@@ -101,12 +101,16 @@ def getTrends(dataframe, correction_ratio, min_trend_delta, logger):
                 mainTrend = process_uptrend_move_up(mainTrend)
             elif (mainTrend.point1 - LowPoint) / (
                     mainTrend.point1 - mainTrend.point0) >= correction_ratio and mainTrend.point1 / LowPoint * 100 - 100 >= min_trend_delta:
+                logger.debug('min_trend_delta={}, correction={}'.format(mainTrend.point1 / LowPoint * 100 - 100,(mainTrend.point1 - LowPoint) / (mainTrend.point1 - mainTrend.point0)))
                 mainTrend = process_uptrend_correction(mainTrend)
         elif mainTrend.direction == 1:
             if LowPoint < mainTrend.point1:
                 mainTrend = process_downtrend_move_down(mainTrend)
             elif (mainTrend.point1 - HighPoint) / (
-                    mainTrend.point1 - mainTrend.point0) >= correction_ratio and LowPoint / mainTrend.point1 * 100 - 100 >= min_trend_delta:
+                    mainTrend.point1 - mainTrend.point0) >= correction_ratio and HighPoint / mainTrend.point1 * 100 - 100 >= min_trend_delta:
+                logger.debug('min_trend_delta={}, correction={}'.format(HighPoint / mainTrend.point1 * 100 - 100,
+                                                                        (mainTrend.point1 - HighPoint) / (
+                                                                                mainTrend.point1 - mainTrend.point0)))
                 mainTrend = process_downtrend_correction(mainTrend)
         return mainTrend
 
@@ -139,7 +143,7 @@ def getTrends(dataframe, correction_ratio, min_trend_delta, logger):
             continue
         #Ищем второй+ тренды
         else:
-            mainTrend = process_trend(mainTrend, correction_ratio, min_trend_delta)
+            mainTrend = process_trend(mainTrend, correction_ratio, min_trend_delta, uncertain_coef, poor_coef, medium_coef, high_coef)
 
     logger.debug('Function getTrends() completed, returning rootTrends with length {}'.format(len(rootTrends)))
     return rootTrends

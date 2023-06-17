@@ -3,7 +3,6 @@ import datetime
 import pandas as pd
 import logging
 
-#Timeframes - 1w, 1M - выписать остальные
 def download_ccxt(Market, Since, To, Timeframe, Exchange=ccxt.binance()):
     logger = logging.getLogger('download_ccxt')
     logger.propagate = False
@@ -18,12 +17,10 @@ def download_ccxt(Market, Since, To, Timeframe, Exchange=ccxt.binance()):
     # timeframe = '4h'
 
     # Define the date range
-    Since = exchange.parse8601(Since)
-    To = exchange.parse8601(To)
+    since = exchange.parse8601(Since)
+    to = exchange.parse8601(To)
     # since = exchange.parse8601('2017-01-01T00:00:00Z')  # 01-01-2015
     # to = exchange.parse8601('2023-08-01T00:00:00Z')  # 01-06-2023
-    since = Since
-    to = To
 
     # Empty list to hold data
     data = []
@@ -49,16 +46,14 @@ def download_ccxt(Market, Since, To, Timeframe, Exchange=ccxt.binance()):
 
     # Convert timestamp to datetime
     df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
-    df.to_csv("ohlc.csv")
+    filename = str(f"{market.replace('/', '')}_{str(datetime.datetime.strptime(Since, '%Y-%m-%dT%H:%M:%SZ').date()).replace('-', '')}_{str(datetime.datetime.strptime(To, '%Y-%m-%dT%H:%M:%SZ').date()).replace('-', '')}_{timeframe}")
+    df.to_csv("csv/" + filename +".csv", index=False)
+    # df.to_csv("ohlc.csv")
     # Split timestamp into date and time columns
     # df['DATE'] = df['timestamp'].dt.strftime('%Y%m%d')
     # df['TIME'] = df['timestamp'].dt.strftime('%H%M%S')
 
-    return df
-
-
-import pandas as pd
-
+    return df, filename
 
 def convert_to_heiken_ashi(df):
     df = df.copy()  # Создаем копию, чтобы не изменять исходный DataFrame

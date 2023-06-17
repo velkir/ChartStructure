@@ -56,20 +56,30 @@ class Trend:
             'extendedExtremum': self.extendedExtremum,
             'extendedExtremum_timestamp': self.extendedExtremum_timestamp.isoformat() if self.extendedExtremum_timestamp is not None else None,
             'efficiency_compare_trends': [
-            {
-                'trend': eff_trend.trend.id if eff_trend.trend is not None else None,
-                'efficiency': eff_trend.efficiency
-            } for eff_trend in self.efficiency_compare_trends
-        ] if self.efficiency_compare_trends else [],
-            'children': [child.to_dict() for child in self.children],
-        }
+        {
+            'trend': eff_trend.trend.id if eff_trend.trend is not None else None,
+            'current_efficiency': eff_trend.current_efficiency,
+            'efficiency': {
+                'uncertain_efficiency': eff_trend.efficiency.uncertain_efficiency.isoformat() if eff_trend.efficiency.uncertain_efficiency is not None else None,
+                'uncertain_efficiency_price': eff_trend.efficiency.uncertain_efficiency_price if not None else None,
+                'poor_efficiency': eff_trend.efficiency.poor_efficiency.isoformat() if eff_trend.efficiency.poor_efficiency is not None else None,
+                'poor_efficiency_price': eff_trend.efficiency.poor_efficiency_price if not None else None,
+                'medium_efficiency': eff_trend.efficiency.medium_efficiency.isoformat() if eff_trend.efficiency.medium_efficiency is not None else None,
+                'medium_efficiency_price': eff_trend.efficiency.medium_efficiency_price if not None else None,
+                'high_efficiency': eff_trend.efficiency.high_efficiency.isoformat() if eff_trend.efficiency.high_efficiency is not None else None,
+                'high_efficiency_price': eff_trend.efficiency.high_efficiency_price if not None else None,
+            }
+        } for eff_trend in self.efficiency_compare_trends
+    ] if self.efficiency_compare_trends else [],
+        'children': [child.to_dict() for child in self.children],
+    }
     def add_child(self, trend):
         self.children.append(trend)
 
     def remove_child(self, trend):
         self.children.remove(trend)
 
-    def compare_trends(self, rootTrends, Highpoint, Lowpoint, logger):
+    def compare_trends(self, rootTrends, Highpoint, Lowpoint, uncertain_coef, poor_coef, medium_coef, high_coef, logger):
         logger.debug(
             'Method compare_trends() called with parameters rootTrends = {}, Highpoint = {}, Lowpoint = {}'.format(
                 rootTrends, Highpoint, Lowpoint))
@@ -78,13 +88,14 @@ class Trend:
                 if self.direction != self.parent.direction:
                     # if self.parent.direction == 1 and Highpoint > self.parent.point0 or \
                     #         self.parent.direction == 0 and Lowpoint < self.parent.point0:
-                    if self.parent.direction == 1 and structure_efficiency_high(self, Highpoint) > 1.1 or \
-                            self.parent.direction == 0 and  structure_efficiency_low(self, Lowpoint) > 1.1:
-
+                    if self.parent.direction == 1 and structure_efficiency_high(self, Highpoint) > poor_coef or \
+                            self.parent.direction == 0 and structure_efficiency_low(self, Lowpoint) > poor_coef:
                         logger.debug('Setting id:{}, point0:{}, point1:{}, direction:{} status to 0'.format(self.parent.id, self.parent.point0, self.parent.point1, self.parent.direction))
                         self.parent.status = 0
                         self.parent.status0_when = self.last_id().timestampend
                         self.parent.status0_who = self.last_id().id
+                        self.add_trend_to_efficiency(trend=self)
+                        self.update_efficiency(uncertain_coef, poor_coef, medium_coef, high_coef, logger)
                         logger.debug('Adding child: Id:{} to Id:{}'.format(self.id, self.parent.parent.id))
                         self.parent.parent.add_child(self)
                         logger.debug('Remove child: Id:{} from Id:{}'.format(self.id, self.parent.id))
@@ -92,17 +103,20 @@ class Trend:
                         logger.debug('New Parent of Id:{} is Id:{}'.format(self.id, self.parent.parent.id))
                         self.parent = self.parent.parent
                         self.add_trend_to_efficiency(trend=self)
+                        self.update_efficiency(uncertain_coef, poor_coef, medium_coef, high_coef, logger)
                         logger.debug(
                             'Запускаем рекурсивную функцию (изначально была для Id:{}, теперь выполняется для Id:{}'.format(
                                 self.id, self.parent.id))
-                        return self.parent.compare_trends(rootTrends, Highpoint, Lowpoint, logger=logger)
+                        return self.parent.compare_trends(rootTrends, Highpoint, Lowpoint, uncertain_coef, poor_coef, medium_coef, high_coef, logger=logger)
                 elif self.direction == self.parent.direction:
                     logger.debug('Запускаем рекурсивную функцию (изначально была для Id:{}, теперь выполняется для Id:{}'.format(self.id, self.parent.id))
-                    return self.parent.compare_trends(rootTrends, Highpoint, Lowpoint, logger=logger)
+                    return self.parent.compare_trends(rootTrends, Highpoint, Lowpoint, uncertain_coef, poor_coef, medium_coef, high_coef, logger=logger)
             elif self.parent.parent == None:
                 if self.direction != self.parent.direction:
-                    if self.parent.direction == 1 and structure_efficiency_high(self, Highpoint) > 1.1 or \
-                            self.parent.direction == 0 and structure_efficiency_low(self, Lowpoint) > 1.1:
+                    # if self.parent.direction == 1 and structure_efficiency_high(self, Highpoint) > poor_coef or \
+                    #         self.parent.direction == 0 and structure_efficiency_low(self, Lowpoint) > poor_coef:
+                    if self.parent.direction == 1 and Highpoint > self.parent.point0 or \
+                            self.parent.direction == 0 and Lowpoint < self.parent.point0:
                         logger.debug(
                             'Setting id:{}, point0:{}, point1:{}, direction:{} status to 0'.format(self.parent.id,
                                                                                                    self.parent.point0,
@@ -177,7 +191,6 @@ class Trend:
                 if Trend.get_trend_by_id(parentTrends[parentTrend].id).point1 < self.point1 and Trend.get_trend_by_id(parentTrends[parentTrend].id).extendedExtremum < self.point1:
                     Trend.get_trend_by_id(parentTrends[parentTrend].id).full_delta = abs(self.point1 / parentTrends[parentTrend].point0 * 100 - 100)
                     Trend.get_trend_by_id(parentTrends[parentTrend].id).full_end_date = self.timestampend
-                if Trend.get_trend_by_id(parentTrends[parentTrend].id).point1 < self.point1 and Trend.get_trend_by_id(parentTrends[parentTrend].id).extendedExtremum < self.point1:
                     logger.debug(
                         'Меняем extendedExtremum у Id:{}, direction:{} со значения {} на значение {} из-за тренда Id:{}, direction={}'.format(
                             parentTrends[parentTrend].id, parentTrends[parentTrend].direction,
@@ -190,7 +203,6 @@ class Trend:
                 if Trend.get_trend_by_id(parentTrends[parentTrend].id).point1 > self.point1 and Trend.get_trend_by_id(parentTrends[parentTrend].id).extendedExtremum > self.point1:
                     Trend.get_trend_by_id(parentTrends[parentTrend].id).full_delta = abs(self.point1 / parentTrends[parentTrend].point0 * 100 - 100)
                     Trend.get_trend_by_id(parentTrends[parentTrend].id).full_end_date = self.timestampend
-                if Trend.get_trend_by_id(parentTrends[parentTrend].id).point1 > self.point1 and Trend.get_trend_by_id(parentTrends[parentTrend].id).extendedExtremum > self.point1:
                     logger.debug(
                         'Меняем extendedExtremum у Id:{}, direction:{} со значения {} на значение {} из-за тренда Id:{}, direction={}'.format(
                             parentTrends[parentTrend].id, parentTrends[parentTrend].direction,
@@ -208,55 +220,90 @@ class Trend:
                 self.add_trend_to_efficiency(trend=self.parent)
             elif self.direction != self.parent.direction:
                 if not any(eff_trend.trend == self.parent for eff_trend in self.efficiency_compare_trends):
-                    efficiency = self.calculate_efficiency(parent_trend=self.parent)
-                    self.efficiency_compare_trends.append(efficiencyTrend(trend=self.parent, efficiency=efficiency))
+                    # efficiency = self.calculate_efficiency(parent_trend=self.parent)
+                    self.efficiency_compare_trends.append(efficiencyTrend(trend=self.parent, current_efficiency=0))
         return self
 
-    def update_efficiency(self):
+    def update_efficiency(self, uncertain_coef, poor_coef, medium_coef, high_coef, logger):
         trends = [self]
-        parend_trends = self.get_parent_trends_same_direction()
-        if parend_trends != None:
-            trends.extend(parend_trends)
+        parent_trends = self.get_parent_trends_same_direction()
+        if parent_trends != None:
+            trends.extend(parent_trends)
         for trend in range(len(trends)):
             for eff_trend in trends[trend].efficiency_compare_trends:
-                effiency = trends[trend].calculate_efficiency(parent_trend=eff_trend.trend)
-                if effiency > eff_trend.efficiency:
-                    eff_trend.efficiency = effiency
+                efficiency = trends[trend].calculate_efficiency(trend=trends[trend], parent_trend=eff_trend.trend)
+                if efficiency > eff_trend.current_efficiency:
+                    logger.debug(
+                        'Устанавливаем efficiency для Id:{} относительно Id:{}. Efficiency={}, current_efficiency={}, uncertain_efficiency={}, poor_efficiency={}, medium_efficiency={}, high_efficiency={}, Extremum={}, Extremum_timestamp={}'.format(
+                            trends[trend].id, eff_trend.trend.id, efficiency, eff_trend.current_efficiency,
+                        eff_trend.efficiency.uncertain_efficiency, eff_trend.efficiency.poor_efficiency,
+                        eff_trend.efficiency.medium_efficiency, eff_trend.efficiency.high_efficiency, trends[trend].extendedExtremum, trends[trend].extendedExtremum_timestamp))
+                    eff_trend.current_efficiency = efficiency
+                    if uncertain_coef < efficiency < poor_coef and eff_trend.efficiency.uncertain_efficiency is None:
+                        eff_trend.efficiency.uncertain_efficiency = trends[trend].extendedExtremum_timestamp
+                        eff_trend.efficiency.uncertain_efficiency_price = trends[trend].extendedExtremum
+                    elif poor_coef < efficiency < medium_coef and eff_trend.efficiency.poor_efficiency is None:
+                        eff_trend.efficiency.poor_efficiency = trends[trend].extendedExtremum_timestamp
+                        eff_trend.efficiency.poor_efficiency_price = trends[trend].extendedExtremum
+                        if eff_trend.efficiency.uncertain_efficiency is None:
+                            eff_trend.efficiency.uncertain_efficiency = eff_trend.efficiency.poor_efficiency
+                            eff_trend.efficiency.uncertain_efficiency_price = eff_trend.efficiency.poor_efficiency_price
+                    elif medium_coef < efficiency < high_coef and eff_trend.efficiency.medium_efficiency is None:
+                        eff_trend.efficiency.medium_efficiency = trends[trend].extendedExtremum_timestamp
+                        eff_trend.efficiency.medium_efficiency_price = trends[trend].extendedExtremum
+                        if eff_trend.efficiency.uncertain_efficiency is None:
+                            eff_trend.efficiency.uncertain_efficiency = eff_trend.efficiency.medium_efficiency
+                            eff_trend.efficiency.uncertain_efficiency_price = eff_trend.efficiency.medium_efficiency_price
+                        if eff_trend.efficiency.poor_efficiency is None:
+                            eff_trend.efficiency.poor_efficiency = eff_trend.efficiency.medium_efficiency
+                            eff_trend.efficiency.poor_efficiency_price = eff_trend.efficiency.medium_efficiency_price
+                    elif efficiency > high_coef and eff_trend.efficiency.high_efficiency is None:
+                        eff_trend.efficiency.high_efficiency = trends[trend].extendedExtremum_timestamp
+                        eff_trend.efficiency.high_efficiency_price = trends[trend].extendedExtremum
+                        if eff_trend.efficiency.uncertain_efficiency is None:
+                            eff_trend.efficiency.uncertain_efficiency = eff_trend.efficiency.high_efficiency
+                            eff_trend.efficiency.uncertain_efficiency_price = eff_trend.efficiency.high_efficiency_price
+                        if eff_trend.efficiency.poor_efficiency is None:
+                            eff_trend.efficiency.poor_efficiency = eff_trend.efficiency.high_efficiency
+                            eff_trend.efficiency.poor_efficiency_price = eff_trend.efficiency.high_efficiency_price
+                        if eff_trend.efficiency.medium_efficiency is None:
+                            eff_trend.efficiency.medium_efficiency = eff_trend.efficiency.high_efficiency
+                            eff_trend.efficiency.medium_efficiency_price = eff_trend.efficiency.high_efficiency_price
 
-    def calculate_efficiency(self, parent_trend):
-        total_movement = abs(parent_trend.point0 - self.point0)  # общее движение
-        current_movement = abs(self.extendedExtremum - self.point0)  # текущее движение
+    def calculate_efficiency(self, trend, parent_trend):
+        total_movement = abs(parent_trend.point0 - trend.point0)  # общее движение
+        current_movement = abs(trend.extendedExtremum - trend.point0)  # текущее движение
         return (current_movement / total_movement)
 
 class efficiencyTrend:
-    def __init__(self, trend, efficiency):
+    def __init__(self, trend, current_efficiency):
         self.trend = trend
-        self.efficiency = efficiency
-    # def __init__(self, trend, efficiency_uncertain=None, efficiency_poor_efficiency=None, efficiency_good_efficiency=None):
-    #     self.trend = trend
-    #     self.efficiency_uncertain = efficiency_uncertain
-    #     self.efficiency_poor_efficiency = efficiency_poor_efficiency
-    #     self.efficiency_good_efficiency = efficiency_good_efficiency
+        self.current_efficiency = current_efficiency
+        self.efficiency = Efficiency()
 
     def to_dict(self):
         return {
             'trend': self.trend.id if self.trend is not None else None,
-            'efficiency': self.efficiency
+            'efficiency': self.current_efficiency
         }
 
 class Efficiency:
-    def __init__(self, percent, timestamp):
-        self.percent = percent
-        self.timestamp = timestamp
+    def __init__(self):
+        self.uncertain_efficiency = None
+        self.uncertain_efficiency_price = None
+        self.poor_efficiency = None
+        self.poor_efficiency_price = None
+        self.medium_efficiency = None
+        self.medium_efficiency_price = None
+        self.high_efficiency = None
+        self.high_efficiency_price = None
 
 def structure_efficiency_high(self, Highpoint):
     total_movement_high = abs(self.parent.point0 - self.point0)  # общее движение
     current_movement_high = abs(Highpoint - self.point0)  # текущее движение
     return current_movement_high / total_movement_high
 
-
-
 def structure_efficiency_low(self, Lowpoint):
     total_movement_high = abs(self.parent.point0 - self.point0)  # общее движение
-    current_movement_high = abs(self.parent.point0 - Lowpoint)  # текущее движение
+    current_movement_high = abs(self.point0 - Lowpoint)  # текущее движение
     return current_movement_high / total_movement_high
