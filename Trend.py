@@ -1,6 +1,5 @@
 import logging
 
-
 class Trend:
     all_trends = {}  # словарь для хранения всех экземпляров класса Trend
 

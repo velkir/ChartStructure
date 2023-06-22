@@ -80,3 +80,19 @@ def convert_to_heiken_ashi(df):
     df.rename(columns={'HA_Open': 'OPEN', 'HA_High': 'HIGH', 'HA_Low': 'LOW', 'HA_Close': 'CLOSE'}, inplace=True)
     df.to_csv("heiken.csv")
     return df[['timestamp', 'OPEN', 'HIGH', 'LOW', 'CLOSE', 'VOL']]
+
+def get_trading_view_data():
+    df = pd.read_csv("BITSTAMP_ETHUSD, 1W.csv")
+    df = df.drop(columns=['Volume MA', 'RSI', 'RSI-based MA', 'Upper Bollinger Band', 'Lower Bollinger Band'])
+    df = df.rename(columns={
+        'time': 'timestamp',
+        'open': 'OPEN',
+        'high': 'HIGH',
+        'low': 'LOW',
+        'close': 'CLOSE',
+        'Volume': 'VOL'
+    })
+    # Convert timestamp to datetime
+    df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
+    df.to_csv("ETHUSD.csv", index=False)
+    return df
