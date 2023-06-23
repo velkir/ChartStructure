@@ -46,6 +46,10 @@ class ContextTrend():
     def recalculateStatus(self):
         return self
     def recalculateDelta(self):
+        if self.direction == 0:
+            self.delta = abs(self.point1/self.point0*100-100)
+        elif self.direction == 1:
+            self.delta = abs(self.point0/self.point1*100-100)
         return self
     def recalclulateExtremum(self):
         return self

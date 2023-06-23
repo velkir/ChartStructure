@@ -1,4 +1,5 @@
 from contextTrend import ContextTrend
+import math
 
 contextTrends = []
 
@@ -32,7 +33,7 @@ def process_chart(df, minDelta, logger):
         logger.debug('Function process_chart() called')
         if maincontextTrend.direction == 0:
             if currentHighPoint > maincontextTrend.point1:
-                if maincontextTrend.maxCorrection_percent >= 0.382:
+                if (maincontextTrend.maxCorrection_percent >= 0.298 and maincontextTrend.delta < 500) or (maincontextTrend.maxlogCorrection >= 0.298 and maincontextTrend.delta >= 500):
                     logger.debug('Коррекция больше 0.382 ({}) и экстремум ниже хая текущего бара. Экстремум: {}. HighPoint: {}. Создаем новый тренд'.format(maincontextTrend.maxCorrection_percent, maincontextTrend.point1, currentHighPoint))
                     delta = abs(currentHighPoint / maincontextTrend.maxCorrection_price * 100 - 100)
                     contextTrend = ContextTrend(id=maincontextTrend.id + 1, direction=0,
@@ -50,6 +51,7 @@ def process_chart(df, minDelta, logger):
                     maincontextTrend.maxCorrection_price = 0
                     maincontextTrend.maxCorrection_percent = 0
                     maincontextTrend.maxCorrection_timestamp = None
+                    maincontextTrend.recalculateDelta()
                     # recalculate_efficiency
                     # if efficiency >1.5:
                     # maincontextTrend.main = True
@@ -69,11 +71,12 @@ def process_chart(df, minDelta, logger):
                 maincontextTrend.maxCorrection_percent = (maincontextTrend.point1 - currentLowPoint) / (
                         maincontextTrend.point1 - maincontextTrend.point0)
                 maincontextTrend.timestampend = df.loc[bar, "timestamp"]
+                maincontextTrend.maxlogCorrection = 1 - math.log(currentLowPoint / maincontextTrend.point0) / math.log(maincontextTrend.point1 / maincontextTrend.point0)
             else:
                 maincontextTrend.timestampend = df.loc[bar, "timestamp"]
         if maincontextTrend.direction == 1:
             if currentLowPoint < maincontextTrend.point1:
-                if maincontextTrend.maxCorrection_percent >= 0.382:
+                if (maincontextTrend.maxCorrection_percent >= 0.298 and maincontextTrend.delta < 500) or (maincontextTrend.maxlogCorrection >= 0.298 and maincontextTrend.delta >= 500):
                     logger.debug('Коррекция больше 0.382 ({}) и экстремум ниже хая текущего бара. Экстремум: {}. LowPoint: {}'.format(maincontextTrend.maxCorrection_percent, maincontextTrend.point1, currentLowPoint))
                     delta = abs(maincontextTrend.maxCorrection_price / currentLowPoint * 100 - 100)
                     contextTrend = ContextTrend(id=maincontextTrend.id + 1, direction=1,
@@ -91,6 +94,7 @@ def process_chart(df, minDelta, logger):
                     maincontextTrend.maxCorrection_price = 0
                     maincontextTrend.maxCorrection_percent = 0
                     maincontextTrend.maxCorrection_timestamp = None
+                    maincontextTrend.recalculateDelta()
                     # recalculate_efficiency
                     # if efficiency >1.5:
                     # maincontextTrend.main = True
@@ -109,7 +113,7 @@ def process_chart(df, minDelta, logger):
                 maincontextTrend.maxCorrection_percent = (currentHighPoint - maincontextTrend.point1) / (
                             maincontextTrend.point0 - maincontextTrend.point1)
                 maincontextTrend.timestampend = df.loc[bar, "timestamp"]
-                print(maincontextTrend.maxCorrection_price)
+                maincontextTrend.maxlogCorrection = math.log(maincontextTrend.point1 / currentHighPoint) / math.log(maincontextTrend.point1 / maincontextTrend.point0)
             else:
                 maincontextTrend.timestampend = df.loc[bar, "timestamp"]
         return maincontextTrend
