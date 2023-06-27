@@ -59,14 +59,14 @@ class Trend:
             'trend': eff_trend.trend.id if eff_trend.trend is not None else None,
             'current_efficiency': eff_trend.current_efficiency,
             'efficiency': {
-                'uncertain_efficiency': eff_trend.efficiency.uncertain_efficiency.isoformat() if eff_trend.efficiency.uncertain_efficiency is not None else None,
-                'uncertain_efficiency_price': eff_trend.efficiency.uncertain_efficiency_price if not None else None,
-                'poor_efficiency': eff_trend.efficiency.poor_efficiency.isoformat() if eff_trend.efficiency.poor_efficiency is not None else None,
-                'poor_efficiency_price': eff_trend.efficiency.poor_efficiency_price if not None else None,
-                'medium_efficiency': eff_trend.efficiency.medium_efficiency.isoformat() if eff_trend.efficiency.medium_efficiency is not None else None,
-                'medium_efficiency_price': eff_trend.efficiency.medium_efficiency_price if not None else None,
-                'high_efficiency': eff_trend.efficiency.high_efficiency.isoformat() if eff_trend.efficiency.high_efficiency is not None else None,
-                'high_efficiency_price': eff_trend.efficiency.high_efficiency_price if not None else None,
+                'uncertain_efficiency': eff_trend.classic_efficiency.uncertain_efficiency.isoformat() if eff_trend.classic_efficiency.uncertain_efficiency is not None else None,
+                'uncertain_efficiency_price': eff_trend.classic_efficiency.uncertain_efficiency_price if not None else None,
+                'poor_efficiency': eff_trend.classic_efficiency.poor_efficiency.isoformat() if eff_trend.classic_efficiency.poor_efficiency is not None else None,
+                'poor_efficiency_price': eff_trend.classic_efficiency.poor_efficiency_price if not None else None,
+                'medium_efficiency': eff_trend.classic_efficiency.medium_efficiency.isoformat() if eff_trend.classic_efficiency.medium_efficiency is not None else None,
+                'medium_efficiency_price': eff_trend.classic_efficiency.medium_efficiency_price if not None else None,
+                'high_efficiency': eff_trend.classic_efficiency.high_efficiency.isoformat() if eff_trend.classic_efficiency.high_efficiency is not None else None,
+                'high_efficiency_price': eff_trend.classic_efficiency.high_efficiency_price if not None else None,
             }
         } for eff_trend in self.efficiency_compare_trends
     ] if self.efficiency_compare_trends else [],
@@ -235,39 +235,39 @@ class Trend:
                     logger.debug(
                         'Устанавливаем efficiency для Id:{} относительно Id:{}. Efficiency={}, current_efficiency={}, uncertain_efficiency={}, poor_efficiency={}, medium_efficiency={}, high_efficiency={}, Extremum={}, Extremum_timestamp={}'.format(
                             trends[trend].id, eff_trend.trend.id, efficiency, eff_trend.current_efficiency,
-                        eff_trend.efficiency.uncertain_efficiency, eff_trend.efficiency.poor_efficiency,
-                        eff_trend.efficiency.medium_efficiency, eff_trend.efficiency.high_efficiency, trends[trend].extendedExtremum, trends[trend].extendedExtremum_timestamp))
+                        eff_trend.classic_efficiency.uncertain_efficiency, eff_trend.classic_efficiency.poor_efficiency,
+                        eff_trend.classic_efficiency.medium_efficiency, eff_trend.classic_efficiency.high_efficiency, trends[trend].extendedExtremum, trends[trend].extendedExtremum_timestamp))
                     eff_trend.current_efficiency = efficiency
-                    if uncertain_coef < efficiency < poor_coef and eff_trend.efficiency.uncertain_efficiency is None:
-                        eff_trend.efficiency.uncertain_efficiency = trends[trend].extendedExtremum_timestamp
-                        eff_trend.efficiency.uncertain_efficiency_price = trends[trend].extendedExtremum
-                    elif poor_coef < efficiency < medium_coef and eff_trend.efficiency.poor_efficiency is None:
-                        eff_trend.efficiency.poor_efficiency = trends[trend].extendedExtremum_timestamp
-                        eff_trend.efficiency.poor_efficiency_price = trends[trend].extendedExtremum
-                        if eff_trend.efficiency.uncertain_efficiency is None:
-                            eff_trend.efficiency.uncertain_efficiency = eff_trend.efficiency.poor_efficiency
-                            eff_trend.efficiency.uncertain_efficiency_price = eff_trend.efficiency.poor_efficiency_price
-                    elif medium_coef < efficiency < high_coef and eff_trend.efficiency.medium_efficiency is None:
-                        eff_trend.efficiency.medium_efficiency = trends[trend].extendedExtremum_timestamp
-                        eff_trend.efficiency.medium_efficiency_price = trends[trend].extendedExtremum
-                        if eff_trend.efficiency.uncertain_efficiency is None:
-                            eff_trend.efficiency.uncertain_efficiency = eff_trend.efficiency.medium_efficiency
-                            eff_trend.efficiency.uncertain_efficiency_price = eff_trend.efficiency.medium_efficiency_price
-                        if eff_trend.efficiency.poor_efficiency is None:
-                            eff_trend.efficiency.poor_efficiency = eff_trend.efficiency.medium_efficiency
-                            eff_trend.efficiency.poor_efficiency_price = eff_trend.efficiency.medium_efficiency_price
-                    elif efficiency > high_coef and eff_trend.efficiency.high_efficiency is None:
-                        eff_trend.efficiency.high_efficiency = trends[trend].extendedExtremum_timestamp
-                        eff_trend.efficiency.high_efficiency_price = trends[trend].extendedExtremum
-                        if eff_trend.efficiency.uncertain_efficiency is None:
-                            eff_trend.efficiency.uncertain_efficiency = eff_trend.efficiency.high_efficiency
-                            eff_trend.efficiency.uncertain_efficiency_price = eff_trend.efficiency.high_efficiency_price
-                        if eff_trend.efficiency.poor_efficiency is None:
-                            eff_trend.efficiency.poor_efficiency = eff_trend.efficiency.high_efficiency
-                            eff_trend.efficiency.poor_efficiency_price = eff_trend.efficiency.high_efficiency_price
-                        if eff_trend.efficiency.medium_efficiency is None:
-                            eff_trend.efficiency.medium_efficiency = eff_trend.efficiency.high_efficiency
-                            eff_trend.efficiency.medium_efficiency_price = eff_trend.efficiency.high_efficiency_price
+                    if uncertain_coef < efficiency < poor_coef and eff_trend.classic_efficiency.uncertain_efficiency is None:
+                        eff_trend.classic_efficiency.uncertain_efficiency = trends[trend].extendedExtremum_timestamp
+                        eff_trend.classic_efficiency.uncertain_efficiency_price = trends[trend].extendedExtremum
+                    elif poor_coef < efficiency < medium_coef and eff_trend.classic_efficiency.poor_efficiency is None:
+                        eff_trend.classic_efficiency.poor_efficiency = trends[trend].extendedExtremum_timestamp
+                        eff_trend.classic_efficiency.poor_efficiency_price = trends[trend].extendedExtremum
+                        if eff_trend.classic_efficiency.uncertain_efficiency is None:
+                            eff_trend.classic_efficiency.uncertain_efficiency = eff_trend.classic_efficiency.poor_efficiency
+                            eff_trend.classic_efficiency.uncertain_efficiency_price = eff_trend.classic_efficiency.poor_efficiency_price
+                    elif medium_coef < efficiency < high_coef and eff_trend.classic_efficiency.medium_efficiency is None:
+                        eff_trend.classic_efficiency.medium_efficiency = trends[trend].extendedExtremum_timestamp
+                        eff_trend.classic_efficiency.medium_efficiency_price = trends[trend].extendedExtremum
+                        if eff_trend.classic_efficiency.uncertain_efficiency is None:
+                            eff_trend.classic_efficiency.uncertain_efficiency = eff_trend.classic_efficiency.medium_efficiency
+                            eff_trend.classic_efficiency.uncertain_efficiency_price = eff_trend.classic_efficiency.medium_efficiency_price
+                        if eff_trend.classic_efficiency.poor_efficiency is None:
+                            eff_trend.classic_efficiency.poor_efficiency = eff_trend.classic_efficiency.medium_efficiency
+                            eff_trend.classic_efficiency.poor_efficiency_price = eff_trend.classic_efficiency.medium_efficiency_price
+                    elif efficiency > high_coef and eff_trend.classic_efficiency.high_efficiency is None:
+                        eff_trend.classic_efficiency.high_efficiency = trends[trend].extendedExtremum_timestamp
+                        eff_trend.classic_efficiency.high_efficiency_price = trends[trend].extendedExtremum
+                        if eff_trend.classic_efficiency.uncertain_efficiency is None:
+                            eff_trend.classic_efficiency.uncertain_efficiency = eff_trend.classic_efficiency.high_efficiency
+                            eff_trend.classic_efficiency.uncertain_efficiency_price = eff_trend.classic_efficiency.high_efficiency_price
+                        if eff_trend.classic_efficiency.poor_efficiency is None:
+                            eff_trend.classic_efficiency.poor_efficiency = eff_trend.classic_efficiency.high_efficiency
+                            eff_trend.classic_efficiency.poor_efficiency_price = eff_trend.classic_efficiency.high_efficiency_price
+                        if eff_trend.classic_efficiency.medium_efficiency is None:
+                            eff_trend.classic_efficiency.medium_efficiency = eff_trend.classic_efficiency.high_efficiency
+                            eff_trend.classic_efficiency.medium_efficiency_price = eff_trend.classic_efficiency.high_efficiency_price
 
     def calculate_efficiency(self, trend, parent_trend):
         total_movement = abs(parent_trend.point0 - trend.point0)  # общее движение
